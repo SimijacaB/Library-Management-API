@@ -17,4 +17,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     @Query("SELECT b FROM Book b WHERE b.title LIKE %:query% OR b.author.name LIKE %:query% OR b.genre LIKE %:query%")
     List<Book> searchBooks(@Param("query") String query);
+
+    // Check if a book with the same title and author name already exists
+    boolean existsByTitleAndAuthor_Name(String title, String authorName);
 }

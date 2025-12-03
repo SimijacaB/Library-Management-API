@@ -68,31 +68,47 @@ public class BookService {
                 .withCSVParser(parser)
                 .build()) {
             String[] nextLine;
-            // Attempt to read header; if absent, proceed as data.
             String[] header = reader.readNext();
             List<Book> books = new ArrayList<>();
-            int row = 1; // if header present, first data row will be 2; adjust below.
-            boolean headerLooksLikeHeader = false;
 
-            if (header != null) {
-                logger.info("Primera fila leída con {} columnas: {}", header.length, String.join(", ", header));
-                row = 2;
-                // Heuristic: if the first line contains typical header names, skip as header.
-                String h0 = header.length > 0 ? header[0].trim().toLowerCase() : "";
-                headerLooksLikeHeader = h0.contains("title") || h0.contains("titulo") || h0.contains("book");
+            // VALIDACIÓN ESTRICTA: El CSV DEBE contener encabezados válidos
+            if (header == null || header.length == 0) {
+                logger.error("El archivo CSV está vacío o no contiene encabezados");
+                throw new IllegalArgumentException("El archivo CSV debe contener encabezados en la primera fila");
+            }
 
-                if (!headerLooksLikeHeader) {
-                    logger.info("Primera fila parece ser datos, procesando como libro");
-                    processRow(header, 1, books);
-                    row = 2;
-                } else {
-                    logger.info("Primera fila detectada como encabezado, omitiendo");
+            logger.info("Primera fila leída con {} columnas: {}", header.length, String.join(", ", header));
+
+            // Verificar que la primera fila contiene encabezados válidos
+            boolean hasValidHeader = false;
+            for (String col : header) {
+                if (col != null) {
+                    String colLower = col.trim().toLowerCase();
+                    if (colLower.equals("title") || colLower.equals("titulo") ||
+                        colLower.equals("book") || colLower.equals("libro") ||
+                        colLower.equals("author") || colLower.equals("autor") ||
+                        colLower.equals("genre") || colLower.equals("genero") ||
+                        colLower.equals("name") || colLower.equals("nombre")) {
+                        hasValidHeader = true;
+                        break;
+                    }
                 }
             }
 
+            if (!hasValidHeader) {
+                logger.error("El archivo CSV no contiene encabezados válidos. Primera fila: {}", String.join(", ", header));
+                throw new IllegalArgumentException(
+                    "El archivo CSV debe contener encabezados válidos en la primera fila. " +
+                    "Encabezados esperados: 'titulo/title', 'autor/author', 'genero/genre'. " +
+                    "Se encontró: " + String.join(", ", header)
+                );
+            }
+
+            logger.info("Encabezados válidos detectados, procesando datos a partir de la fila 2");
+            int row = 2; // Comenzar desde la segunda fila (primera fila = encabezado)
+
             while ((nextLine = reader.readNext()) != null) {
                 // Skip completely empty lines to avoid infinite loops
-                // Check if the array is empty or all values are blank
                 if (nextLine.length == 0) {
                     logger.debug("Fila {} está vacía (length=0), omitiendo", row);
                     row++;
@@ -180,6 +196,23 @@ public class BookService {
             return;
         }
 
+        // 1) Validar si el libro ya existe en la base de datos
+        if (bookRepository.existsByTitleAndAuthor_Name(title, authorName)) {
+            logger.warn("Fila {}: el libro '{}' por '{}' ya existe en la base de datos, omitiendo", rowNumber, title, authorName);
+            return;
+        }
+
+        // 2) Validar duplicados en el lote actual del CSV
+        boolean duplicateInBatch = books.stream().anyMatch(b ->
+                title.equalsIgnoreCase(safeTrim(b.getTitle())) &&
+                authorName.equalsIgnoreCase(safeTrim(b.getAuthor().getName()))
+        );
+        if (duplicateInBatch) {
+            logger.warn("Fila {}: libro '{}' por '{}' ya está presente en la carga actual, omitiendo", rowNumber, title, authorName);
+            return;
+        }
+
+        // Buscar o crear autor
         Author author = authorRepository.findByName(authorName)
                 .orElseGet(() -> {
                     logger.info("Creando nuevo autor: {}", authorName);
