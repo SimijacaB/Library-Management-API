@@ -1,9 +1,12 @@
 package com.library.management.controller;
 
 import com.library.management.dto.BookDTO;
+import com.library.management.dto.BookRequestDTO;
+import com.library.management.dto.BookResponseDTO;
 import com.library.management.model.Book;
 import com.library.management.service.BookService;
 import com.opencsv.exceptions.CsvValidationException;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,27 +31,20 @@ public class BookController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Book> getBookById(@PathVariable Long id) {
-        return bookService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Book book = bookService.findBookById(id);
+        return ResponseEntity.ok(book);
     }
 
     @PostMapping
-    public Book createBook(@RequestBody Book book) {
-        return bookService.save(book);
+    public ResponseEntity<BookResponseDTO> createBook(@Valid @RequestBody BookRequestDTO book) {
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(bookService.save(book));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Book> updateBook(@PathVariable Long id, @RequestBody Book bookDetails) {
-        return bookService.findById(id)
-                .map(book -> {
-                    book.setTitle(bookDetails.getTitle());
-                    book.setAuthor(bookDetails.getAuthor());
-                    book.setGenre(bookDetails.getGenre());
-                    book.setAvailable(bookDetails.isAvailable());
-                    return ResponseEntity.ok(bookService.save(book));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<BookResponseDTO> updateBook(@PathVariable Long id, @Valid @RequestBody BookRequestDTO bookDetails) {
+
+        return ResponseEntity.ok(bookService.update(id, bookDetails));
     }
 
     @DeleteMapping("/{id}")

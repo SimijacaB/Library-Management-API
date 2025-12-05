@@ -1,6 +1,11 @@
 package com.library.management.service;
 
 import com.library.management.dto.BookDTO;
+import com.library.management.dto.BookRequestDTO;
+import com.library.management.dto.BookResponseDTO;
+import com.library.management.exception.CsvHeaderMissingException;
+import com.library.management.exception.ResourceAlreadyExistsException;
+import com.library.management.exception.ResourceNotFoundException;
 import com.library.management.model.Author;
 import com.library.management.model.Book;
 import com.library.management.repository.AuthorRepository;
@@ -40,13 +45,90 @@ public class BookService {
         return bookRepository.findAll();
     }
 
-    public Optional<Book> findById(Long id) {
-        return bookRepository.findById(id);
+    public Book findBookById(Long id) {
+        return bookRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Libro", "id", id));
     }
 
-    public Book save(Book book) {
-        return bookRepository.save(book);
+    public BookResponseDTO save(BookRequestDTO request) {
+        // Buscar o crear autor automáticamente
+        Author author = authorRepository.findByName(request.authorName())
+                .orElseGet(() -> {
+                    logger.info("Creando nuevo autor: {}", request.authorName());
+                    Author newAuthor = new Author();
+                    newAuthor.setName(request.authorName());
+                    return authorRepository.save(newAuthor);
+                });
+
+        // Verificar si el libro ya existe
+        if (bookRepository.existsByTitleAndAuthor_Name(request.title(), author.getName())) {
+            throw new ResourceAlreadyExistsException("Libro", "título y autor",
+                    request.title() + " por " + author.getName());
+        }
+
+        Book book = Book.builder()
+                .title(request.title())
+                .author(author)
+                .genre(request.genre())
+                .available(true)
+                .build();
+
+        Book savedBook = bookRepository.save(book);
+
+        return new BookResponseDTO(
+                savedBook.getTitle(),
+                savedBook.getAuthor().getName(),
+                savedBook.getGenre(),
+                savedBook.isAvailable()
+        );
     }
+
+
+    public BookResponseDTO update(Long id, BookRequestDTO request) {
+
+        // 1. Buscar libro existente
+        Book existingBook = bookRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Libro", "id", id));
+
+        // 2. Buscar o crear autor
+        Author author = authorRepository.findByName(request.authorName())
+                .orElseGet(() -> {
+                    Author newAuthor = new Author();
+                    newAuthor.setName(request.authorName());
+                    return authorRepository.save(newAuthor);
+                });
+
+        // 3. Validar si otro libro (no este) tiene este título+autor
+        boolean exists = bookRepository.existsByTitleAndAuthor_Name(
+                request.title(),
+                author.getName()
+        );
+
+        if (exists) {
+            throw new ResourceAlreadyExistsException(
+                    "Libro", "título y autor",
+                    request.title() + " / " + author.getName()
+            );
+        }
+
+        // 4. Actualizar campos
+        existingBook.setTitle(request.title());
+        existingBook.setAuthor(author);
+        existingBook.setGenre(request.genre());
+        // existingBook.setAvailable(request.available()); // si lo manejas
+
+        // 5. Guardar
+        Book saved = bookRepository.save(existingBook);
+
+        // 6. Convertir a DTO de respuesta
+        return new BookResponseDTO(
+                saved.getTitle(),
+                saved.getAuthor().getName(),
+                saved.getGenre(),
+                saved.isAvailable()
+        );
+    }
+
 
     public void deleteById(Long id) {
         bookRepository.deleteById(id);
@@ -74,7 +156,7 @@ public class BookService {
             // VALIDACIÓN ESTRICTA: El CSV DEBE contener encabezados válidos
             if (header == null || header.length == 0) {
                 logger.error("El archivo CSV está vacío o no contiene encabezados");
-                throw new IllegalArgumentException("El archivo CSV debe contener encabezados en la primera fila");
+                throw new CsvHeaderMissingException("El archivo CSV debe contener encabezados en la primera fila");
             }
 
             logger.info("Primera fila leída con {} columnas: {}", header.length, String.join(", ", header));
@@ -97,7 +179,7 @@ public class BookService {
 
             if (!hasValidHeader) {
                 logger.error("El archivo CSV no contiene encabezados válidos. Primera fila: {}", String.join(", ", header));
-                throw new IllegalArgumentException(
+                throw new CsvHeaderMissingException(
                     "El archivo CSV debe contener encabezados válidos en la primera fila. " +
                     "Encabezados esperados: 'titulo/title', 'autor/author', 'genero/genre'. " +
                     "Se encontró: " + String.join(", ", header)

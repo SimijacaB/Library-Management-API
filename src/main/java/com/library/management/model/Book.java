@@ -5,8 +5,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
-import java.time.LocalDate;
+import lombok.Builder;
 
+@Builder
 @Entity
 public class Book {
 
@@ -18,6 +19,17 @@ public class Book {
     private Author author;
     private String genre;
     private boolean available;
+
+    public Book() {
+    }
+
+    public Book(Long id, String title, Author author, String genre, boolean available) {
+        this.id = id;
+        this.title = title;
+        this.author = author;
+        this.genre = genre;
+        this.available = available;
+    }
 
     // Getters and Setters
     public Long getId() {
