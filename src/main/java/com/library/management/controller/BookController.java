@@ -67,7 +67,7 @@ public class BookController {
             List<BookDTO> savedBooks = bookService.saveBooksFromCsv(file);
             return ResponseEntity.status(HttpStatus.OK).body(savedBooks);
         } catch (IllegalArgumentException e) {
-            // Error de validación (ej: falta de encabezados)
+
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error de validación: " + e.getMessage());
         } catch (IOException | CsvValidationException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload books: " + e.getMessage());

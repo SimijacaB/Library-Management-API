@@ -131,7 +131,9 @@ public class BookService {
 
 
     public void deleteById(Long id) {
-        bookRepository.deleteById(id);
+        Book bookExist = bookRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Libro", "id", id));
+
+        bookRepository.delete(bookExist);
     }
 
     public List<Book> searchBooks(String query) {
