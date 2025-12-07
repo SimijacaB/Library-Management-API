@@ -115,7 +115,6 @@ public class BookService {
         existingBook.setTitle(request.title());
         existingBook.setAuthor(author);
         existingBook.setGenre(request.genre());
-        // existingBook.setAvailable(request.available()); // si lo manejas
 
         // 5. Guardar
         Book saved = bookRepository.save(existingBook);
