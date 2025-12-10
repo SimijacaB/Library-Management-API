@@ -1,0 +1,18 @@
+services:
+  backend:
+    build: .
+    container_name: library-management-app
+    ports:
+      - "8090:8090"
+    environment:
+      - DB_USER_NAME=sa
+      - DB_PASSWORD=password
+      - DB_URL=jdbc:h2:file:/app/data/librarydb
+      - DB_PLATFORM=org.hibernate.dialect.H2Dialect
+    volumes:
+      - library_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  library_data:
+
