@@ -1,8 +1,12 @@
 package com.library.management.service;
 
+import com.library.management.dto.BookRequestDTO;
+import com.library.management.dto.BookResponseDTO;
 import com.library.management.model.Author;
 import com.library.management.model.Book;
+import com.library.management.repository.AuthorRepository;
 import com.library.management.repository.BookRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -13,8 +17,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class BookServiceTest {
@@ -22,52 +27,82 @@ public class BookServiceTest {
     @Mock
     private BookRepository bookRepository;
 
+    @Mock
+    private AuthorRepository authorRepository;
+
     @InjectMocks
     private BookService bookService;
 
-    @Test
-    public void whenFindAll_thenReturnBookList() {
-        // given
+    private Book book;
+
+    @BeforeEach
+    public void setUp() {
         Author author = new Author();
+        author.setId(1L);
         author.setName("Test Author");
 
-        Book book = new Book();
+        book = new Book();
+        book.setId(1L);
         book.setTitle("Test Book");
         book.setAuthor(author);
-        book.setGenre("Fiction");
-        book.setAvailable(true);
+    }
 
-        List<Book> bookList = Collections.singletonList(book);
-        when(bookRepository.findAll()).thenReturn(bookList);
+    @Test
+    public void whenFindAll_thenReturnBookList() {
+        given(bookRepository.findAll()).willReturn(Collections.singletonList(book));
 
-        // when
-        List<Book> foundBooks = bookService.findAll();
+        List<Book> result = bookService.findAll();
 
-        // then
-        assertThat(foundBooks).isNotEmpty();
-        assertThat(foundBooks.get(0).getTitle()).isEqualTo("Test Book");
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Test Book", result.get(0).getTitle());
+        verify(bookRepository).findAll();
     }
 
     @Test
     public void whenFindById_thenReturnBook() {
-        // given
+        given(bookRepository.findById(1L)).willReturn(Optional.of(book));
+
+        Book result = bookService.findBookById(1L);
+
+        assertNotNull(result);
+        assertEquals("Test Book", result.getTitle());
+        verify(bookRepository).findById(1L);
+    }
+
+    @Test
+    public void whenSaveBook_thenReturnSavedBook() {
+        // Arrange
+        BookRequestDTO request = new BookRequestDTO(
+                "Test Book",
+                "Test Author",
+                "Fiction"
+        );
+
         Author author = new Author();
+        author.setId(1L);
         author.setName("Test Author");
 
-        Book book = new Book();
-        book.setId(1L);
-        book.setTitle("Test Book");
-        book.setAuthor(author);
-        book.setGenre("Fiction");
-        book.setAvailable(true);
+        Book book = Book.builder()
+                .id(1L)
+                .title("Test Book")
+                .author(author)
+                .genre("Fiction")
+                .available(true)
+                .build();
 
-        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        given(authorRepository.findByName("Test Author")).willReturn(Optional.of(author));
+        given(bookRepository.existsByTitleAndAuthor_Name("Test Book", "Test Author")).willReturn(false);
+        given(bookRepository.save(book)).willReturn(book);
 
-        // when
-        Optional<Book> foundBook = bookService.findById(1L);
+        // Act
+        BookResponseDTO result = bookService.save(request);
 
-        // then
-        assertThat(foundBook).isPresent();
-        assertThat(foundBook.get().getTitle()).isEqualTo("Test Book");
+        // Assert
+        assertNotNull(result);
+        assertEquals("Test Book", result.title());
+        assertEquals("Test Author", result.author());
+        assertEquals("Fiction", result.genre());
+        assertTrue(result.available());
     }
 }
