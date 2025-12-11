@@ -304,11 +304,9 @@ public class BookService {
                     return authorRepository.save(newAuthor);
                 });
 
-        Book book = new Book();
-        book.setTitle(title);
-        book.setAuthor(author);
-        book.setGenre(genre);
-        book.setAvailable(true);
+        Book book = Book.builder()
+                .title(title).author(author).genre(genre).available(true).build();
+
         books.add(book);
 
         logger.info("Libro agregado a la lista para guardar: '{}' por {}", title, authorName);

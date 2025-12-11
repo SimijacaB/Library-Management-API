@@ -7,8 +7,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 
+@Builder
 @Entity
+
 public class Author {
 
     @Id
@@ -19,6 +24,15 @@ public class Author {
     @OneToMany(mappedBy = "author")
     @JsonIgnore
     private List<Book> books;
+
+    public Author() {
+    }
+
+    public Author(Long id, String name, List<Book> books) {
+        this.id = id;
+        this.name = name;
+        this.books = books;
+    }
 
     // Getters and Setters
     public Long getId() {

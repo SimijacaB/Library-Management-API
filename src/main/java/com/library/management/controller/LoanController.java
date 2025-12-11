@@ -9,8 +9,12 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "*")
 public class LoanController {
 
-    @Autowired
-    private LoanService loanService;
+
+    private final LoanService loanService;
+
+    public LoanController(LoanService loanService) {
+        this.loanService = loanService;
+    }
 
     @PostMapping("/borrow")
     public Loan borrowBook(@RequestParam Long bookId, @RequestParam Long userId) {

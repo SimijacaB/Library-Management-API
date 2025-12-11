@@ -12,8 +12,11 @@ import java.util.List;
 @RequestMapping("/api/authors")
 public class AuthorController {
 
-    @Autowired
-    private AuthorService authorService;
+    private final AuthorService authorService;
+
+    public AuthorController(AuthorService authorService) {
+        this.authorService = authorService;
+    }
 
     @GetMapping
     public List<Author> getAllAuthors() {
