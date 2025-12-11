@@ -17,14 +17,15 @@ import java.util.Optional;
 @Service
 public class LoanService {
 
-    @Autowired
-    private LoanRepository loanRepository;
+    private final LoanRepository loanRepository;
+    private final BookRepository bookRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private BookRepository bookRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    public LoanService(LoanRepository loanRepository, BookRepository bookRepository, UserRepository userRepository) {
+        this.loanRepository = loanRepository;
+        this.bookRepository = bookRepository;
+        this.userRepository = userRepository;
+    }
 
     private static final int LOAN_DAYS = 15;
     private static final double FINE_PER_DAY = 0.50;
