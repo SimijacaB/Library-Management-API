@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -83,17 +84,11 @@ public class BookServiceTest {
         author.setId(1L);
         author.setName("Test Author");
 
-        Book book = Book.builder()
-                .id(1L)
-                .title("Test Book")
-                .author(author)
-                .genre("Fiction")
-                .available(true)
-                .build();
+        Book book = new Book(null, "Test Book", author, "Fiction", true);
 
         given(authorRepository.findByName("Test Author")).willReturn(Optional.of(author));
         given(bookRepository.existsByTitleAndAuthor_Name("Test Book", "Test Author")).willReturn(false);
-        given(bookRepository.save(book)).willReturn(book);
+        given(bookRepository.save(any(Book.class))).willReturn(book);
 
         // Act
         BookResponseDTO result = bookService.save(request);

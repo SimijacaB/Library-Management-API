@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
         error.put("message", ex.getMessage());
         error.put("resource", ex.getResourceName());
         error.put("field", ex.getFieldName());
-        error.put("value", ex.getFieldValue().toString());
+        error.put("value", String.valueOf(ex.getFieldValue()));
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
